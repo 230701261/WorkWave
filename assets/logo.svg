@@ -1,0 +1,14 @@
+<svg width="180" height="60" viewBox="0 0 180 60" xmlns="http://www.w3.org/2000/svg">
+  <!-- Wave Background -->
+  <path d="M10,30 Q30,10 50,30 T90,30 T130,30 T170,30" fill="none" stroke="#2196F3" stroke-width="4" />
+  <path d="M10,40 Q30,20 50,40 T90,40 T130,40 T170,40" fill="none" stroke="#4CAF50" stroke-width="4" />
+  
+  <!-- Text -->
+  <text x="30" y="35" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#212121">
+    Work<tspan fill="#2196F3">Wave</tspan>
+  </text>
+  
+  <!-- Icons -->
+  <circle cx="15" cy="30" r="5" fill="#2196F3" />
+  <circle cx="165" cy="30" r="5" fill="#4CAF50" />
+</svg>
