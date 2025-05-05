@@ -5,10 +5,23 @@ plugins {
     id 'com.google.gms.google-services'
 }
 
+def localProperties = new Properties()
+def localPropertiesFile = rootProject.file('local.properties')
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.withReader('UTF-8') { reader ->
+        localProperties.load(reader)
+    }
+}
+
+def flutterRoot = localProperties.getProperty('flutter.sdk')
+if (flutterRoot == null) {
+    throw new RuntimeException("Flutter SDK not found. Define location with flutter.sdk in the local.properties file.")
+}
+
 android {
     namespace 'com.example.workwave'
-    compileSdk flutter.compileSdkVersion
-    ndkVersion '27.0.12077973'
+    compileSdk = 35
+    ndkVersion = "27.0.12077973"
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
@@ -22,9 +35,10 @@ android {
     defaultConfig {
         applicationId 'com.example.workwave'
         minSdkVersion 23
-        targetSdkVersion flutter.targetSdkVersion
-        versionCode flutter.versionCode
+        targetSdk = 35
+        versionCode flutter.versionCode.toInteger()
         versionName flutter.versionName
+        multiDexEnabled true
     }
 
     buildTypes {
@@ -36,7 +50,7 @@ android {
 
 dependencies {
     // Import the Firebase BoM
-    implementation platform('com.google.firebase:firebase-bom:33.12.0')
+    implementation platform('com.google.firebase:firebase-bom:32.7.0')
 
     // Add the dependencies for Firebase products you want to use
     implementation 'com.google.firebase:firebase-analytics'

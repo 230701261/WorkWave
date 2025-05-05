@@ -22,17 +22,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final _locationController = TextEditingController();
   final _aboutController = TextEditingController();
   final _careerGoalsController = TextEditingController();
-  
+
   final ImagePicker _imagePicker = ImagePicker();
   File? _profileImage;
   bool _isUploading = false;
-  
+
   @override
   void initState() {
     super.initState();
     _initializeUserData();
   }
-  
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -42,11 +42,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _careerGoalsController.dispose();
     super.dispose();
   }
-  
+
   void _initializeUserData() {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final user = authProvider.currentUser;
-    
+
     if (user != null) {
       _nameController.text = user.name;
       _emailController.text = user.email;
@@ -55,7 +55,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       _careerGoalsController.text = user.careerGoals ?? '';
     }
   }
-  
+
   Future<void> _pickImage() async {
     try {
       final XFile? pickedFile = await _imagePicker.pickImage(
@@ -64,7 +64,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         maxHeight: 500,
         imageQuality: 80,
       );
-      
+
       if (pickedFile != null) {
         setState(() {
           _profileImage = File(pickedFile.path);
@@ -74,33 +74,33 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       print('Error picking image: $e');
     }
   }
-  
+
   Future<void> _saveProfile() async {
     if (_formKey.currentState!.validate()) {
       setState(() {
         _isUploading = true;
       });
-      
+
       try {
         final authProvider = Provider.of<AuthProvider>(context, listen: false);
         final user = authProvider.currentUser;
-        
+
         if (user == null) {
           throw Exception('User not found');
         }
-        
+
         // In a real app, we would upload the image and update the user profile
         // through proper API calls using a UserService
-        
+
         // For this demo, we'll just show a success message
         await Future.delayed(Duration(seconds: 1)); // Simulate network delay
-        
+
         CustomSnackbar.show(
           context: context,
           message: 'Profile updated successfully',
           type: SnackbarType.success,
         );
-        
+
         Get.back();
       } catch (e) {
         CustomSnackbar.show(
@@ -115,12 +115,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       }
     }
   }
-  
+
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
     final user = authProvider.currentUser;
-    
+
     if (user == null) {
       return Scaffold(
         body: Center(
@@ -128,9 +128,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         ),
       );
     }
-    
+
     final isFreelancer = user.userType == 'freelancer';
-    
+
     return Scaffold(
       appBar: AppBar(
         title: Text('Edit Profile'),
@@ -172,11 +172,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       backgroundColor: AppThemes.primaryColor.withOpacity(0.1),
                       backgroundImage: _profileImage != null
                           ? FileImage(_profileImage!)
-                          : (user.profileImageUrl != null && user.profileImageUrl!.isNotEmpty
+                          : (user.profileImageUrl != null &&
+                                  user.profileImageUrl!.isNotEmpty
                               ? NetworkImage(user.profileImageUrl!)
+                                  as ImageProvider<Object>
                               : null),
                       child: _profileImage == null &&
-                              (user.profileImageUrl == null || user.profileImageUrl!.isEmpty)
+                              (user.profileImageUrl == null ||
+                                  user.profileImageUrl!.isEmpty)
                           ? Text(
                               user.name[0].toUpperCase(),
                               style: TextStyle(
@@ -196,7 +199,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           shape: BoxShape.circle,
                         ),
                         child: IconButton(
-                          icon: Icon(Icons.camera_alt, color: Colors.white, size: 20),
+                          icon: Icon(Icons.camera_alt,
+                              color: Colors.white, size: 20),
                           onPressed: _pickImage,
                           constraints: BoxConstraints.tightFor(
                             width: 36,
@@ -210,14 +214,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 ),
               ),
               const SizedBox(height: 24),
-              
+
               // Basic Info
               Text(
                 'Basic Information',
                 style: AppThemes.subheadingStyle,
               ),
               const SizedBox(height: 16),
-              
+
               // Name
               TextFormField(
                 controller: _nameController,
@@ -233,7 +237,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 },
               ),
               const SizedBox(height: 16),
-              
+
               // Email (disabled)
               TextFormField(
                 controller: _emailController,
@@ -246,7 +250,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 enabled: false,
               ),
               const SizedBox(height: 16),
-              
+
               // Location
               TextFormField(
                 controller: _locationController,
@@ -257,14 +261,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 ),
               ),
               const SizedBox(height: 24),
-              
+
               // Profile Details
               Text(
                 'Profile Details',
                 style: AppThemes.subheadingStyle,
               ),
               const SizedBox(height: 16),
-              
+
               // About
               TextFormField(
                 controller: _aboutController,
@@ -279,7 +283,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 maxLines: 5,
               ),
               const SizedBox(height: 16),
-              
+
               // Career Goals (only for freelancers)
               if (isFreelancer) ...[
                 TextFormField(
@@ -294,27 +298,28 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 ),
                 const SizedBox(height: 16),
               ],
-              
+
               // Additional Profile Sections
               _buildProfileSection(
                 title: 'Skills',
-                description: 'Add your skills to attract relevant job opportunities',
+                description:
+                    'Add your skills to attract relevant job opportunities',
                 icon: Icons.psychology_outlined,
                 onTap: () {
                   // Navigate to skills editor
                 },
               ),
-              
+
               if (isFreelancer) ...[
                 _buildProfileSection(
                   title: 'Work Experience',
-                  description: 'Add your professional experience to boost your profile',
+                  description:
+                      'Add your professional experience to boost your profile',
                   icon: Icons.work_outline,
                   onTap: () {
                     // Navigate to work experience editor
                   },
                 ),
-                
                 _buildProfileSection(
                   title: 'Education',
                   description: 'Add your educational background',
@@ -323,7 +328,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     // Navigate to education editor
                   },
                 ),
-                
                 _buildProfileSection(
                   title: 'Certifications',
                   description: 'Add your professional certifications',
@@ -341,7 +345,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     // Navigate to company details editor
                   },
                 ),
-                
                 _buildProfileSection(
                   title: 'Industry',
                   description: 'Specify your company\'s industry',
@@ -351,7 +354,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   },
                 ),
               ],
-              
+
               _buildProfileSection(
                 title: 'Social Links',
                 description: 'Connect your professional social profiles',
@@ -360,9 +363,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   // Navigate to social links editor
                 },
               ),
-              
+
               const SizedBox(height: 24),
-              
+
               // Delete Account
               SizedBox(
                 width: double.infinity,
@@ -381,7 +384,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   ),
                 ),
               ),
-              
+
               const SizedBox(height: 24),
             ],
           ),
@@ -389,7 +392,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       ),
     );
   }
-  
+
   Widget _buildProfileSection({
     required String title,
     required String description,
@@ -415,7 +418,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       ),
     );
   }
-  
+
   void _showDeleteAccountConfirmation() {
     showDialog(
       context: context,

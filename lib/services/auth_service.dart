@@ -1,3 +1,5 @@
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:uuid/uuid.dart';
 import 'dart:async';
@@ -5,37 +7,18 @@ import 'dart:async';
 import '../models/user_model.dart';
 
 class AuthService {
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FlutterSecureStorage _storage = FlutterSecureStorage();
   final _authStreamController = StreamController<String?>.broadcast();
-  
-  // Mock users for demo
-  final List<UserModel> _mockUsers = [
-    UserModel(
-      id: '1',
-      name: 'John Freelancer',
-      email: 'freelancer@example.com',
-      userType: 'freelancer',
-      profileImageUrl: '',
-      about: 'Experienced web developer with 5+ years of experience',
-      location: 'New York, USA',
-      skills: ['Flutter', 'Dart', 'Firebase', 'UI/UX Design'],
-      hourlyRate: 25,
-      joinDate: DateTime.now().subtract(Duration(days: 365)),
-      careerGoals: 'Looking to expand my portfolio with mobile app projects',
-      rating: 4.8,
-    ),
-    UserModel(
-      id: '2',
-      name: 'Jane Client',
-      email: 'client@example.com',
-      userType: 'client',
-      profileImageUrl: '',
-      about: 'Tech startup founder looking for talented developers',
-      location: 'San Francisco, USA',
-      joinDate: DateTime.now().subtract(Duration(days: 180)),
-      rating: 4.9,
-    ),
-  ];
+  final _uuid = Uuid();
+
+  AuthService() {
+    // Listen to Firebase Auth state changes
+    _auth.authStateChanges().listen((user) {
+      _authStreamController.add(user?.uid);
+    });
+  }
 
   // Get current authenticated user stream
   Stream<String?> get authStateChanges => _authStreamController.stream;
@@ -47,38 +30,87 @@ class AuthService {
     required String password,
     required String userType,
   }) async {
-    await Future.delayed(Duration(seconds: 1)); // Simulate network delay
-    
-    // Check if email already exists
-    if (_mockUsers.any((user) => user.email == email)) {
-      throw Exception('Email already in use');
+    try {
+      print('Attempting to register user with email: $email');
+      // Create user in Firebase Auth
+      final UserCredential userCredential = await _auth
+          .createUserWithEmailAndPassword(email: email, password: password)
+          .timeout(
+            const Duration(seconds: 30),
+            onTimeout: () =>
+                throw Exception('Registration timeout. Please try again.'),
+          );
+
+      print('User created in Firebase Auth, ID: ${userCredential.user?.uid}');
+
+      if (userCredential.user == null) {
+        print('User credential is null after registration');
+        throw Exception('Failed to create user account');
+      }
+
+      // Update the user's display name
+      print('Updating user display name');
+      await userCredential.user!.updateDisplayName(name).timeout(
+            const Duration(seconds: 30),
+            onTimeout: () => throw Exception(
+                'Failed to update user profile. Please try again.'),
+          );
+
+      // Create user document in Firestore
+      final user = UserModel(
+        id: userCredential.user!.uid,
+        name: name,
+        email: email,
+        userType: userType,
+        profileImageUrl: '',
+        about: '',
+        location: '',
+        skills: [],
+        workExperience: [],
+        education: [],
+        certificates: [],
+        projects: [],
+        achievements: [],
+        socialLinks: [],
+        careerGoals: '',
+        rating: 0.0,
+        activityStreak: null,
+        joinDate: DateTime.now(),
+        hourlyRate: 0.0,
+      );
+
+      // Save user data to Firestore
+      await _firestore
+          .collection('users')
+          .doc(user.id)
+          .set(user.toJson())
+          .timeout(
+            const Duration(seconds: 30),
+            onTimeout: () => throw Exception(
+                'Failed to create user profile. Please try again.'),
+          );
+
+      return user;
+    } on FirebaseAuthException catch (e) {
+      print('Firebase Auth error: ${e.code} - ${e.message}');
+      switch (e.code) {
+        case 'email-already-in-use':
+          throw Exception('Email is already registered');
+        case 'invalid-email':
+          throw Exception('Invalid email address');
+        case 'operation-not-allowed':
+          throw Exception('Email/password accounts are not enabled');
+        case 'weak-password':
+          throw Exception('Password is too weak');
+        case 'network-request-failed':
+          throw Exception('Network error. Please check your connection.');
+        default:
+          throw Exception('Registration failed: ${e.message}');
+      }
+    } catch (e) {
+      print('Registration error: $e');
+      throw Exception('Registration failed: ${e.toString()}');
     }
-    
-    final uuid = Uuid();
-    final userId = uuid.v4();
-    
-    // Create new user
-    UserModel newUser = UserModel(
-      id: userId,
-      name: name,
-      email: email,
-      userType: userType,
-      profileImageUrl: '',
-      joinDate: DateTime.now(),
-    );
-    
-    // Add to mock users list
-    _mockUsers.add(newUser);
-    
-    // Save user info to secure storage
-    await _storage.write(key: 'userToken', value: 'mock-token-$userId');
-    await _storage.write(key: 'userId', value: userId);
-    await _storage.write(key: 'userType', value: userType);
-    
-    // Notify listeners
-    _authStreamController.add(userId);
-    
-    return newUser;
   }
 
   // Login with email and password
@@ -86,73 +118,141 @@ class AuthService {
     required String email,
     required String password,
   }) async {
-    await Future.delayed(Duration(seconds: 1)); // Simulate network delay
-    
-    // For demo purposes, accept any password for mock users
-    final user = _mockUsers.firstWhere(
-      (user) => user.email == email,
-      orElse: () => throw Exception('User not found'),
-    );
-    
-    // Save user info to secure storage
-    await _storage.write(key: 'userToken', value: 'mock-token-${user.id}');
-    await _storage.write(key: 'userId', value: user.id);
-    await _storage.write(key: 'userType', value: user.userType);
-    
-    // Notify listeners
-    _authStreamController.add(user.id);
-    
-    return user;
-  }
+    try {
+      print('Attempting to sign in with email: $email');
+      // Sign in with Firebase Auth
+      final UserCredential userCredential = await _auth
+          .signInWithEmailAndPassword(email: email, password: password)
+          .timeout(
+            const Duration(seconds: 30),
+            onTimeout: () =>
+                throw Exception('Login timeout. Please try again.'),
+          );
 
-  // Logout
-  Future<void> logout() async {
-    await _storage.deleteAll();
-    _authStreamController.add(null);
-  }
+      print('Sign in successful, user ID: ${userCredential.user?.uid}');
 
-  // Check if user is logged in
-  Future<bool> isLoggedIn() async {
-    final token = await _storage.read(key: 'userToken');
-    return token != null;
-  }
+      if (userCredential.user == null) {
+        print('User credential is null after sign in');
+        throw Exception('Failed to sign in');
+      }
 
-  // Get user type
-  Future<String?> getUserType() async {
-    return await _storage.read(key: 'userType');
-  }
+      // Get user data from Firestore
+      print('Fetching user data from Firestore');
+      final userDoc = await _firestore
+          .collection('users')
+          .doc(userCredential.user!.uid)
+          .get()
+          .timeout(
+            const Duration(seconds: 30),
+            onTimeout: () =>
+                throw Exception('Failed to fetch user data. Please try again.'),
+          );
 
-  // Get user ID
-  Future<String?> getUserId() async {
-    return await _storage.read(key: 'userId');
+      print('Firestore document exists: ${userDoc.exists}');
+
+      if (!userDoc.exists) {
+        // If user doesn't exist in Firestore, create a new user document
+        final newUser = UserModel(
+          id: userCredential.user!.uid,
+          name: userCredential.user!.displayName ?? '',
+          email: email,
+          userType: 'freelancer',
+          joinDate: DateTime.now(),
+          skills: [],
+          workExperience: [],
+          education: [],
+          certificates: [],
+          projects: [],
+          achievements: [],
+          socialLinks: [],
+        );
+
+        // Save the new user to Firestore
+        final userData = newUser.toJson();
+        await _firestore
+            .collection('users')
+            .doc(newUser.id)
+            .set(userData)
+            .timeout(
+              const Duration(seconds: 30),
+              onTimeout: () => throw Exception(
+                  'Failed to create user profile. Please try again.'),
+            );
+        return newUser;
+      }
+
+      // Ensure we're working with a Map<String, dynamic>
+      final data = Map<String, dynamic>.from(userDoc.data() ?? {});
+      data['id'] = userCredential.user!.uid;
+
+      // Handle potential type mismatches
+      if (data['skills'] != null && data['skills'] is List) {
+        data['skills'] =
+            (data['skills'] as List).map((e) => e?.toString() ?? '').toList();
+      }
+
+      return UserModel.fromJson(data);
+    } on FirebaseAuthException catch (e) {
+      print('Firebase Auth error: ${e.code} - ${e.message}');
+      switch (e.code) {
+        case 'user-not-found':
+          throw Exception('No user found with this email');
+        case 'wrong-password':
+          throw Exception('Wrong password');
+        case 'user-disabled':
+          throw Exception('User account has been disabled');
+        case 'invalid-email':
+          throw Exception('Invalid email address');
+        case 'network-request-failed':
+          throw Exception('Network error. Please check your connection.');
+        default:
+          throw Exception('Login failed: ${e.message}');
+      }
+    } catch (e) {
+      print('Login error: $e');
+      throw Exception('Login failed: ${e.toString()}');
+    }
   }
 
   // Get user by ID
   Future<UserModel?> getUserById(String userId) async {
-    await Future.delayed(Duration(milliseconds: 300)); // Simulate network delay
     try {
-      return _mockUsers.firstWhere((user) => user.id == userId);
+      final userDoc = await _firestore.collection('users').doc(userId).get();
+      if (!userDoc.exists || userDoc.data() == null) return null;
+      return UserModel.fromJson(userDoc.data()!);
     } catch (e) {
+      print('Error getting user: $e');
       return null;
     }
   }
 
-  // Password reset
-  Future<void> resetPassword(String email) async {
-    await Future.delayed(Duration(seconds: 1)); // Simulate network delay
-    
-    // Check if email exists
-    final user = _mockUsers.firstWhere(
-      (user) => user.email == email,
-      orElse: () => throw Exception('Email not found'),
-    );
-    
-    // In a real app, this would send an email
-    print('Password reset email sent to ${user.email}');
+  // Check if user is logged in
+  Future<bool> isLoggedIn() async {
+    return _auth.currentUser != null;
   }
-  
-  // Dispose
-  void dispose() {
-    _authStreamController.close();
+
+  // Get current user ID
+  Future<String?> getUserId() async {
+    return _auth.currentUser?.uid;
+  }
+
+  // Logout
+  Future<void> logout() async {
+    try {
+      await _auth.signOut();
+    } catch (e) {
+      print('Logout error: $e');
+      throw Exception('Logout failed: ${e.toString()}');
+    }
+  }
+
+  // Reset password
+  Future<void> resetPassword(String email) async {
+    try {
+      await _auth.sendPasswordResetEmail(email: email);
+    } catch (e) {
+      print('Password reset error: $e');
+      throw Exception('Password reset failed: ${e.toString()}');
+    }
   }
 }

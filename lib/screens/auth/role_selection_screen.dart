@@ -17,55 +17,60 @@ class RoleSelectionScreen extends StatelessWidget {
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SizedBox(height: 20),
-              Text(
-                'How would you like to use WorkWave?',
-                style: AppThemes.headingStyle,
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 40),
-              
-              // Freelancer Option
-              _buildRoleCard(
-                title: 'Join as a Freelancer',
-                description: 'Find work, submit proposals, and earn money working on projects that match your skills.',
-                icon: Icons.work_outline,
-                onTap: () {
-                  Get.toNamed(Routes.register, arguments: 'freelancer');
-                },
-              ),
-              
-              const SizedBox(height: 24),
-              
-              // Client Option
-              _buildRoleCard(
-                title: 'Join as a Client',
-                description: 'Post jobs, hire talented professionals, and get your projects completed.',
-                icon: Icons.business_center_outlined,
-                onTap: () {
-                  Get.toNamed(Routes.register, arguments: 'client');
-                },
-              ),
-              
-              const Spacer(),
-              
-              // Login link
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text("Already have an account?"),
-                  TextButton(
-                    onPressed: () {
-                      Get.offNamed(Routes.login);
-                    },
-                    child: Text('Login'),
-                  ),
-                ],
-              ),
-            ],
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: 20),
+                Text(
+                  'How would you like to use WorkWave?',
+                  style: AppThemes.headingStyle,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 40),
+
+                // Freelancer Option
+                _buildRoleCard(
+                  title: 'Join as a Freelancer',
+                  description:
+                      'Find work, submit proposals, and earn money working on projects that match your skills.',
+                  icon: Icons.work_outline,
+                  onTap: () {
+                    Get.toNamed(Routes.register, arguments: 'freelancer');
+                  },
+                ),
+
+                const SizedBox(height: 24),
+
+                // Client Option
+                _buildRoleCard(
+                  title: 'Join as a Client',
+                  description:
+                      'Post jobs, hire talented professionals, and get your projects completed.',
+                  icon: Icons.business_center_outlined,
+                  onTap: () {
+                    Get.toNamed(Routes.register, arguments: 'client');
+                  },
+                ),
+
+                const SizedBox(height: 40),
+
+                // Login link
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text("Already have an account?"),
+                    TextButton(
+                      onPressed: () {
+                        Get.offNamed(Routes.login);
+                      },
+                      child: Text('Login'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+              ],
+            ),
           ),
         ),
       ),

@@ -31,8 +31,75 @@
 
   <title>workwave</title>
   <link rel="manifest" href="manifest.json">
+
+  <script>
+    // The value will be replaced with the build hash by Flutter tool
+    const serviceWorkerVersion = null;
+  </script>
+
+  <!-- Firebase SDK -->
+  <script type="module">
+    // Import the functions you need from the SDKs you need
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+    import { getAuth } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+    import { getFirestore } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+    import { getStorage } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-storage.js";
+
+    // Your web app's Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyDpenY26nzCWjtc9QJoAWRGrWpumtEdwwU",
+      authDomain: "workwave-232323.firebaseapp.com",
+      projectId: "workwave-232323",
+      storageBucket: "workwave-232323.appspot.com",
+      messagingSenderId: "1064692670801",
+      appId: "1:1064692670801:web:e028d7cf8c00488132f370"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const storage = getStorage(app);
+
+    // Make Firebase instances available globally
+    window.firebase = {
+      app,
+      auth,
+      db,
+      storage
+    };
+  </script>
+
+  <!-- Firebase Interop -->
+  <script>
+    // Add interop functions
+    window.handleThenable = function(promise) {
+      return promise;
+    };
+    window.jsify = function(obj) {
+      return obj;
+    };
+    window.dartify = function(obj) {
+      return obj;
+    };
+  </script>
+  
+  <script src="flutter.js" defer></script>
 </head>
 <body>
-  <script src="flutter_bootstrap.js" async></script>
+  <script>
+    window.addEventListener('load', function(ev) {
+      // Download main.dart.js
+      _flutter.loader.load({
+        serviceWorker: {
+          serviceWorkerVersion: serviceWorkerVersion,
+        }
+      }).then(function(engineInitializer) {
+        return engineInitializer.initializeEngine();
+      }).then(function(appRunner) {
+        return appRunner.runApp();
+      });
+    });
+  </script>
 </body>
 </html>

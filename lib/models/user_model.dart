@@ -1,4 +1,5 @@
 import 'activity_streak.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class UserModel {
   final String id;
@@ -44,99 +45,137 @@ class UserModel {
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
-    return UserModel(
-      id: json['id'],
-      name: json['name'],
-      email: json['email'],
-      userType: json['userType'],
-      profileImageUrl: json['profileImageUrl'],
-      location: json['location'],
-      about: json['about'],
-      skills: json['skills'] != null ? List<String>.from(json['skills']) : null,
-      workExperience:
-          json['workExperience'] != null
-              ? (json['workExperience'] as List)
-                  .map((e) => WorkExperience.fromJson(e))
-                  .toList()
-              : null,
-      education:
-          json['education'] != null
-              ? (json['education'] as List)
-                  .map((e) => Education.fromJson(e))
-                  .toList()
-              : null,
-      certificates:
-          json['certificates'] != null
-              ? (json['certificates'] as List)
-                  .map((e) => Certificate.fromJson(e))
-                  .toList()
-              : null,
-      projects:
-          json['projects'] != null
-              ? (json['projects'] as List)
-                  .map((e) => Project.fromJson(e))
-                  .toList()
-              : null,
-      achievements:
-          json['achievements'] != null
-              ? (json['achievements'] as List)
-                  .map((e) => Achievement.fromJson(e))
-                  .toList()
-              : null,
-      socialLinks:
-          json['socialLinks'] != null
-              ? (json['socialLinks'] as List)
-                  .map((e) => SocialLink.fromJson(e))
-                  .toList()
-              : null,
-      careerGoals: json['careerGoals'],
-      rating: json['rating']?.toDouble(),
-      activityStreak:
-          json['activityStreak'] != null
-              ? ActivityStreak.fromJson(json['activityStreak'])
-              : null,
-      joinDate:
-          json['joinDate'] != null ? DateTime.parse(json['joinDate']) : null,
-      hourlyRate: json['hourlyRate']?.toDouble(),
-    );
+    try {
+      // Convert any List<Object?> to List<String> for skills
+      List<String> parseSkills(dynamic skills) {
+        if (skills == null) return [];
+        if (skills is List) {
+          return skills.map((e) => e?.toString() ?? '').toList();
+        }
+        if (skills is String) {
+          return [skills];
+        }
+        return [];
+      }
+
+      return UserModel(
+        id: json['id']?.toString() ?? '',
+        name: json['name']?.toString() ?? '',
+        email: json['email']?.toString() ?? '',
+        userType: json['userType']?.toString() ?? 'freelancer',
+        profileImageUrl: json['profileImageUrl']?.toString(),
+        location: json['location']?.toString(),
+        about: json['about']?.toString(),
+        skills: parseSkills(json['skills']),
+        workExperience: _parseList<WorkExperience>(
+          json['workExperience'],
+          (item) => WorkExperience.fromJson(Map<String, dynamic>.from(item)),
+        ),
+        education: _parseList<Education>(
+          json['education'],
+          (item) => Education.fromJson(Map<String, dynamic>.from(item)),
+        ),
+        certificates: _parseList<Certificate>(
+          json['certificates'],
+          (item) => Certificate.fromJson(Map<String, dynamic>.from(item)),
+        ),
+        projects: _parseList<Project>(
+          json['projects'],
+          (item) => Project.fromJson(Map<String, dynamic>.from(item)),
+        ),
+        achievements: _parseList<Achievement>(
+          json['achievements'],
+          (item) => Achievement.fromJson(Map<String, dynamic>.from(item)),
+        ),
+        socialLinks: _parseList<SocialLink>(
+          json['socialLinks'],
+          (item) => SocialLink.fromJson(Map<String, dynamic>.from(item)),
+        ),
+        careerGoals: json['careerGoals']?.toString(),
+        rating: _parseDouble(json['rating']),
+        activityStreak: json['activityStreak'] != null
+            ? ActivityStreak.fromJson(
+                Map<String, dynamic>.from(json['activityStreak']))
+            : null,
+        joinDate: _parseDateTime(json['joinDate']),
+        hourlyRate: _parseDouble(json['hourlyRate']),
+      );
+    } catch (e) {
+      print('Error parsing UserModel from JSON: $e');
+      print('JSON data: $json');
+      // Return an empty user model instead of throwing
+      return UserModel.empty();
+    }
+  }
+
+  // Helper method to parse lists with better type handling
+  static List<T> _parseList<T>(dynamic list, T Function(dynamic) fromJson) {
+    if (list == null) return [];
+    if (list is List) {
+      try {
+        return list.map((item) {
+          if (item is Map) {
+            return fromJson(Map<String, dynamic>.from(item));
+          }
+          // Handle case where item might be a different type
+          return fromJson({"data": item});
+        }).toList();
+      } catch (e) {
+        print('Error parsing list of type $T: $e');
+        return [];
+      }
+    }
+    return [];
+  }
+
+  // Helper method to parse double values
+  static double? _parseDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
+  }
+
+  // Helper method to parse DateTime
+  static DateTime? _parseDateTime(dynamic value) {
+    if (value == null) return null;
+    if (value is DateTime) return value;
+    if (value is Timestamp) return value.toDate();
+    if (value is String) {
+      try {
+        return DateTime.parse(value);
+      } catch (e) {
+        print('Error parsing DateTime from string: $e');
+        return null;
+      }
+    }
+    return null;
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = <String, dynamic>{};
-    data['id'] = id;
-    data['name'] = name;
-    data['email'] = email;
-    data['userType'] = userType;
-    if (profileImageUrl != null) data['profileImageUrl'] = profileImageUrl;
-    if (location != null) data['location'] = location;
-    if (about != null) data['about'] = about;
-    if (skills != null) data['skills'] = skills;
-    if (workExperience != null) {
-      data['workExperience'] = workExperience!.map((e) => e.toJson()).toList();
-    }
-    if (education != null) {
-      data['education'] = education!.map((e) => e.toJson()).toList();
-    }
-    if (certificates != null) {
-      data['certificates'] = certificates!.map((e) => e.toJson()).toList();
-    }
-    if (projects != null) {
-      data['projects'] = projects!.map((e) => e.toJson()).toList();
-    }
-    if (achievements != null) {
-      data['achievements'] = achievements!.map((e) => e.toJson()).toList();
-    }
-    if (socialLinks != null) {
-      data['socialLinks'] = socialLinks!.map((e) => e.toJson()).toList();
-    }
-    if (careerGoals != null) data['careerGoals'] = careerGoals;
-    if (rating != null) data['rating'] = rating;
-    if (activityStreak != null) {
-      data['activityStreak'] = activityStreak!.toJson();
-    }
-    if (joinDate != null) data['joinDate'] = joinDate!.toIso8601String();
-    if (hourlyRate != null) data['hourlyRate'] = hourlyRate;
-    return data;
+    return {
+      'id': id,
+      'name': name,
+      'email': email,
+      'userType': userType,
+      'profileImageUrl': profileImageUrl ?? '',
+      'location': location ?? '',
+      'about': about ?? '',
+      'skills': skills ?? [],
+      'workExperience': workExperience?.map((e) => e.toJson()).toList() ?? [],
+      'education': education?.map((e) => e.toJson()).toList() ?? [],
+      'certificates': certificates?.map((e) => e.toJson()).toList() ?? [],
+      'projects': projects?.map((e) => e.toJson()).toList() ?? [],
+      'achievements': achievements?.map((e) => e.toJson()).toList() ?? [],
+      'socialLinks': socialLinks?.map((e) => e.toJson()).toList() ?? [],
+      'careerGoals': careerGoals ?? '',
+      'rating': rating ?? 0.0,
+      'activityStreak': activityStreak?.toJson(),
+      'joinDate':
+          joinDate?.toIso8601String() ?? DateTime.now().toIso8601String(),
+      'hourlyRate': hourlyRate ?? 0.0,
+    };
   }
 
   UserModel copyWith({
@@ -182,6 +221,60 @@ class UserModel {
       hourlyRate: hourlyRate ?? this.hourlyRate,
     );
   }
+
+  // Alias for toJson to maintain compatibility with AuthService
+  Map<String, dynamic> toMap() => toJson();
+
+  // Factory method for creating a UserModel from a map
+  factory UserModel.fromMap(Map<String, dynamic> map) =>
+      UserModel.fromJson(map);
+
+  // Factory method to create a new user from Firebase Auth data
+  factory UserModel.fromFirebaseAuth({
+    required String uid,
+    required String email,
+    required String name,
+    String userType = 'freelancer',
+  }) {
+    return UserModel(
+      id: uid,
+      email: email,
+      name: name,
+      userType: userType,
+      joinDate: DateTime.now(),
+    );
+  }
+
+  // Factory method to create an empty user
+  factory UserModel.empty() {
+    return UserModel(
+      id: '',
+      name: '',
+      email: '',
+      userType: 'freelancer',
+      profileImageUrl: null,
+      location: null,
+      about: null,
+      skills: null,
+      workExperience: null,
+      education: null,
+      certificates: null,
+      projects: null,
+      achievements: null,
+      socialLinks: null,
+      careerGoals: null,
+      rating: null,
+      activityStreak: null,
+      joinDate: null,
+      hourlyRate: null,
+    );
+  }
+
+  // Check if the user model is empty
+  bool get isEmpty => id.isEmpty;
+
+  // Check if the user model is not empty
+  bool get isNotEmpty => !isEmpty;
 }
 
 class WorkExperience {
@@ -309,10 +402,9 @@ class Certificate {
       name: json['name'],
       issuingOrganization: json['issuingOrganization'],
       issueDate: DateTime.parse(json['issueDate']),
-      expirationDate:
-          json['expirationDate'] != null
-              ? DateTime.parse(json['expirationDate'])
-              : null,
+      expirationDate: json['expirationDate'] != null
+          ? DateTime.parse(json['expirationDate'])
+          : null,
       credentialId: json['credentialId'],
       credentialUrl: json['credentialUrl'],
     );
@@ -363,10 +455,9 @@ class Project {
       isOngoing: json['isOngoing'] ?? false,
       description: json['description'],
       projectUrl: json['projectUrl'],
-      technologies:
-          json['technologies'] != null
-              ? List<String>.from(json['technologies'])
-              : null,
+      technologies: json['technologies'] != null
+          ? List<String>.from(json['technologies'])
+          : null,
     );
   }
 
